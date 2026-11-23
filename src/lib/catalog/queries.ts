@@ -102,7 +102,7 @@ type RawSettings = {
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes"); // textos da loja: atualizam em até ~1 min
   cacheTag(SETTINGS_TAG);
 
   const { data, error } = await getSupabasePublicClient()
