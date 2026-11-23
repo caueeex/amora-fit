@@ -52,13 +52,19 @@ export async function getCategories(): Promise<Category[]> {
   cacheLife("hours");
   cacheTag(CATALOG_TAG);
 
+  // select("*"): funciona antes e depois da migration 0009 (coluna image_path).
   const { data, error } = await getSupabasePublicClient()
     .from("categories")
-    .select("id, slug, name")
+    .select("*")
     .eq("is_active", true)
     .order("position");
   if (error) throw new Error(`Falha ao carregar categorias: ${error.message}`);
-  return data ?? [];
+  return ((data ?? []) as { id: string; slug: string; name: string; image_path?: string | null }[]).map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    name: c.name,
+    imageUrl: c.image_path ? storagePublicUrl(publicEnv.supabaseUrl, "store-assets", c.image_path) : null,
+  }));
 }
 
 export async function getBestSellerIds(limit = 8): Promise<string[]> {

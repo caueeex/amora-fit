@@ -34,7 +34,7 @@ export type CatalogProduct = {
   totalAvailable: number;
 };
 
-export type Category = { id: string; slug: string; name: string };
+export type Category = { id: string; slug: string; name: string; imageUrl: string | null };
 
 export type StoreSettings = {
   storeName: string;

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CatalogProduct } from "@/lib/catalog/types";
 import { Price } from "./price";
+import { ProductCarousel } from "./product-carousel";
 import { ProductImage } from "./product-image";
 
 export function ProductCard({ product, priority = false }: { product: CatalogProduct; priority?: boolean }) {
@@ -10,7 +11,7 @@ export function ProductCard({ product, priority = false }: { product: CatalogPro
   return (
     <Link
       href={`/produto/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-creme-300/10 bg-amora-700/40 transition-[transform,border-color,box-shadow] duration-300 ease-[var(--ease-suave)] hover:-translate-y-1 hover:border-creme-300/30 hover:shadow-[var(--shadow-card)]"
+      className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-creme-300/10 bg-amora-700/40 transition-[transform,border-color,box-shadow] duration-300 ease-[var(--ease-suave)] hover:-translate-y-1 hover:border-creme-300/30 hover:shadow-[var(--shadow-card)]"
     >
       <div className="relative">
         <ProductImage
@@ -64,5 +65,16 @@ export function ProductGrid({ products, priorityCount = 0 }: { products: Catalog
         <ProductCard key={p.id} product={p} priority={i < priorityCount} />
       ))}
     </div>
+  );
+}
+
+/** Vitrine horizontal (carrossel) usada nas seções da home. */
+export function ProductRow({ products, label, priorityCount = 0 }: { products: CatalogProduct[]; label: string; priorityCount?: number }) {
+  return (
+    <ProductCarousel label={label}>
+      {products.map((p, i) => (
+        <ProductCard key={p.id} product={p} priority={i < priorityCount} />
+      ))}
+    </ProductCarousel>
   );
 }

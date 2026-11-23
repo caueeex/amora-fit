@@ -99,6 +99,10 @@ describe("filtros", () => {
     expect(filterProducts(all, parseFilters({ tamanho: "G", cor: "vinho" })).map((p) => p.slug)).toEqual(["legging"]);
   });
 
+  it("ofertas mostram só produtos com promoção", () => {
+    expect(filterProducts(all, parseFilters({ oferta: "1" })).map((p) => p.slug)).toEqual(["top"]);
+  });
+
   it("faixa de preço usa o preço promocional", () => {
     expect(filterProducts(all, parseFilters({ max: "40" })).map((p) => p.slug)).toEqual(["top"]);
   });

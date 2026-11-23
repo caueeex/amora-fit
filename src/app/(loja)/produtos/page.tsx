@@ -28,7 +28,7 @@ async function Listing({ searchParams }: { searchParams: PageProps<"/produtos">[
   const results = filterProducts(catalog, filters);
   const options = filterOptions(filters.category ? catalog.filter((p) => p.categorySlug === filters.category) : catalog);
   const category = categories.find((c) => c.slug === filters.category);
-  const title = filters.q ? `Resultados para “${filters.q}”` : category?.name ?? "Todos os produtos";
+  const title = filters.q ? `Resultados para “${filters.q}”` : filters.onSale ? `Ofertas${category ? ` em ${category.name}` : ""}` : category?.name ?? "Todos os produtos";
   const activeCount =
     filters.sizes.length + filters.colors.length + Number(filters.minCents !== undefined) + Number(filters.maxCents !== undefined) + Number(filters.onlyAvailable);
 
@@ -87,6 +87,7 @@ function FilterPanel({
       <form id="filtros" action="/produtos" method="get" className="flex flex-col gap-6 px-4 pb-5">
         <FilterAutoSubmit formId="filtros" />
         {filters.q && <input type="hidden" name="q" value={filters.q} />}
+        {filters.onSale && <input type="hidden" name="oferta" value="1" />}
 
         <fieldset>
           <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-creme-300/80">Categoria</legend>

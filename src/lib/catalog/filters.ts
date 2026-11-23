@@ -10,6 +10,8 @@ export type CatalogFilters = {
   minCents?: number;
   maxCents?: number;
   onlyAvailable: boolean;
+  /** Só produtos com preço promocional (?oferta=1). */
+  onSale: boolean;
   sort: SortKey;
 };
 
@@ -43,6 +45,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
     minCents: reais(sp.min),
     maxCents: reais(sp.max),
     onlyAvailable: (Array.isArray(sp.disponivel) ? sp.disponivel[0] : sp.disponivel) === "1",
+    onSale: (Array.isArray(sp.oferta) ? sp.oferta[0] : sp.oferta) === "1",
     sort: SORTS.includes(sortRaw as SortKey) ? (sortRaw as SortKey) : "relevancia",
   };
 }
@@ -54,6 +57,7 @@ export function filterProducts(products: CatalogProduct[], f: CatalogFilters): C
 
   const result = products.filter((p) => {
     if (f.category && p.categorySlug !== f.category) return false;
+    if (f.onSale && (p.promoPriceCents === null || p.promoPriceCents >= p.priceCents)) return false;
     if (f.minCents !== undefined && p.effectivePriceCents < f.minCents) return false;
     if (f.maxCents !== undefined && p.effectivePriceCents > f.maxCents) return false;
     if (terms.length) {

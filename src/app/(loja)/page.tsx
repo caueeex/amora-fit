@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { AmoraIcon } from "@/components/brand/logo";
+import { CategoryCarousel } from "@/components/loja/category-carousel";
 import { Hero } from "@/components/loja/hero";
-import { ProductGrid } from "@/components/loja/product-card";
+import { ProductRow } from "@/components/loja/product-card";
 import { Section } from "@/components/loja/section";
 import { getBestSellerIds, getCatalog, getCategories, getStoreSettings } from "@/lib/catalog/queries";
 import type { CatalogProduct } from "@/lib/catalog/types";
@@ -28,33 +28,28 @@ export default async function HomePage() {
     <>
       <Hero settings={settings} categories={categories} products={catalog} />
 
-      {/* Categorias */}
+      {/* Categorias em círculos (carrossel) */}
       {categories.length > 0 && (
-        <section aria-label="Categorias" className="mx-auto max-w-6xl px-4 pt-8">
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {categories.map((c) => {
-              const count = catalog.filter((p) => p.categorySlug === c.slug).length;
-              return (
-                <li key={c.id}>
-                  <Link
-                    href={`/produtos?categoria=${c.slug}`}
-                    className="group flex h-full items-center justify-between rounded-2xl border border-creme-300/15 bg-amora-700/40 px-4 py-4 transition-colors hover:border-creme-300/40 hover:bg-amora-700/70"
-                  >
-                    <span>
-                      <span className="block font-display text-lg font-bold text-creme-50">{c.name}</span>
-                      <span className="text-xs text-creme-100/60">
-                        {count} {count === 1 ? "peça" : "peças"}
-                      </span>
-                    </span>
-                    <span className="text-creme-300 transition-transform group-hover:translate-x-1" aria-hidden="true">
-                      →
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <CategoryCarousel
+          title={
+            <h2 className="mb-6 text-center font-display text-2xl font-bold text-creme-50 sm:text-3xl">Categorias</h2>
+          }
+          items={[
+            ...(news.length > 0
+              ? [{ key: "novidades", href: "/produtos?ordem=novidades", label: "Novidades", imageUrl: news[0].images[0]?.url ?? null, iconSlug: "novidades" }]
+              : []),
+            ...categories.map((c) => {
+              const inCategory = catalog.filter((p) => p.categorySlug === c.slug);
+              return {
+                key: c.id,
+                href: `/produtos?categoria=${c.slug}`,
+                label: c.name,
+                imageUrl: c.imageUrl ?? inCategory.find((p) => p.images[0])?.images[0]?.url ?? null,
+                iconSlug: c.slug,
+              };
+            }),
+          ]}
+        />
       )}
 
       {catalog.length === 0 ? (
@@ -69,24 +64,24 @@ export default async function HomePage() {
         <>
           {featured.length > 0 && (
             <Section id="destaques" eyebrow="Escolhidos para você" title="Destaques" href="/produtos">
-              <ProductGrid products={featured} priorityCount={2} />
+              <ProductRow products={featured} label="Destaques" priorityCount={2} />
             </Section>
           )}
 
           {news.length > 0 && (
             <Section id="novidades" eyebrow="Acabou de chegar" title="Novidades" href="/produtos?ordem=novidades">
-              <ProductGrid products={news} />
+              <ProductRow products={news} label="Novidades" />
             </Section>
           )}
 
           {best.length > 0 && (
             <Section id="mais-vendidos" eyebrow="As queridinhas" title="Mais vendidos">
-              <ProductGrid products={best} />
+              <ProductRow products={best} label="Mais vendidos" />
             </Section>
           )}
 
-          <Section id="todos" eyebrow="Coleção completa" title="Todos os produtos" href="/produtos" hrefLabel="Filtrar">
-            <ProductGrid products={all} />
+          <Section id="todos" eyebrow="Coleção completa" title="Todos os produtos" href="/produtos" hrefLabel="Ver todos">
+            <ProductRow products={all.slice(0, 16)} label="Todos os produtos" />
           </Section>
         </>
       )}
