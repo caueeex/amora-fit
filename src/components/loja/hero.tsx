@@ -52,8 +52,8 @@ export function Hero({
       <div aria-hidden="true" className="absolute inset-0 -z-10">
         <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-amora-600/40 blur-3xl" />
         <div className="absolute -right-24 top-1/3 h-[28rem] w-[28rem] rounded-full bg-berry/15 blur-3xl" />
-        <div className="absolute right-[8%] top-10 h-[30rem] w-[30rem] rounded-full border border-creme-300/10" />
-        <div className="absolute right-[14%] top-24 h-[22rem] w-[22rem] rounded-full border border-creme-300/[0.07]" />
+        <div className="absolute right-[8%] top-10 hidden h-[30rem] w-[30rem] rounded-full border border-creme-300/10 lg:block" />
+        <div className="absolute right-[14%] top-24 hidden h-[22rem] w-[22rem] rounded-full border border-creme-300/[0.07] lg:block" />
       </div>
 
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-12 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">

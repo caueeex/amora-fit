@@ -1,6 +1,8 @@
 type LogoProps = {
   /** "full": ícone + nome + "moda fitness"; "compact": ícone + nome em linha. */
   variant?: "full" | "compact";
+  /** "dark": para fundos escuros (padrão, letras creme); "light": para fundos claros (letras vinho). */
+  tone?: "dark" | "light";
   className?: string;
 };
 
@@ -21,12 +23,14 @@ export function AmoraIcon({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ variant = "full", className = "" }: LogoProps) {
+export function Logo({ variant = "full", tone = "dark", className = "" }: LogoProps) {
+  const word = tone === "light" ? "text-amora-800" : "text-creme-300";
+  const sub = tone === "light" ? "text-amora-700/80" : "text-creme-200/90";
   if (variant === "compact") {
     return (
       <span className={`inline-flex items-center gap-1.5 ${className}`}>
         <AmoraIcon className="h-6 w-6 text-berry" />
-        <span className="font-display text-2xl font-bold leading-none tracking-tight text-creme-300">
+        <span className={`font-display text-2xl font-bold leading-none tracking-tight ${word}`}>
           Amora
         </span>
         <span className="sr-only">Amora Fit — moda fitness</span>
@@ -37,10 +41,10 @@ export function Logo({ variant = "full", className = "" }: LogoProps) {
   return (
     <span className={`inline-flex flex-col items-center ${className}`}>
       <AmoraIcon className="h-9 w-9 text-berry" />
-      <span className="font-display text-5xl font-bold leading-none tracking-tight text-creme-300">
+      <span className={`font-display text-5xl font-bold leading-none tracking-tight ${word}`}>
         Amora
       </span>
-      <span className="mt-2 text-xs font-medium uppercase tracking-[0.3em] text-creme-200/90">
+      <span className={`mt-2 text-xs font-medium uppercase tracking-[0.3em] ${sub}`}>
         Moda Fitness
       </span>
     </span>
