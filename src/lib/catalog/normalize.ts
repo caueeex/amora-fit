@@ -14,7 +14,7 @@ export type RawProduct = {
   is_featured: boolean;
   created_at: string;
   category: { slug: string; name: string } | null;
-  images: { storage_path: string; alt_text: string; position: number }[] | null;
+  images: { storage_path: string; alt_text: string; position: number; color_name?: string | null }[] | null;
   variants:
     | {
         id: string;
@@ -70,6 +70,7 @@ export function normalizeProduct(raw: RawProduct, supabaseUrl: string): CatalogP
     .map((img) => ({
       url: storagePublicUrl(supabaseUrl, "product-images", img.storage_path),
       alt: img.alt_text || raw.name,
+      color: img.color_name ?? null,
     }));
 
   return {

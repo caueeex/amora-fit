@@ -10,13 +10,15 @@ import { useProductColor } from "./product-color";
  * (identificada pelo texto alternativo da imagem). Clicar numa miniatura vale até
  * a próxima troca de cor.
  */
-export function Gallery({ images, name }: { images: { url: string; alt: string }[]; name: string }) {
+export function Gallery({ images, name }: { images: { url: string; alt: string; color?: string | null }[]; name: string }) {
   const { color } = useProductColor();
   const [manual, setManual] = useState<{ index: number; color: string } | null>(null);
 
+  // 1º: cor definida no painel; 2º: "cor <nome>" no texto alternativo (evita confundir a cor "Amora" com o nome do produto).
+  const byTag = images.findIndex((img) => color && img.color && foldText(img.color) === foldText(color));
   // Prefere "cor <nome>" no texto alternativo (evita confundir a cor "Amora" com o nome do produto).
   const byPhrase = images.findIndex((img) => color && foldText(img.alt).includes(foldText(`cor ${color}`)));
-  const colorIndex = byPhrase >= 0 ? byPhrase : images.findIndex((img) => color && foldText(img.alt).includes(foldText(color)));
+  const colorIndex = byTag >= 0 ? byTag : byPhrase >= 0 ? byPhrase : images.findIndex((img) => color && foldText(img.alt).includes(foldText(color)));
   const active = manual && manual.color === color ? manual.index : colorIndex >= 0 ? colorIndex : 0;
   const current = images[active];
 

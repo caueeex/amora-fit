@@ -11,7 +11,7 @@ export function adminClient(): SupabaseClient | null {
   return createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export async function createTestUser(admin: SupabaseClient) {
+export async function createTestUser(admin: SupabaseClient, opts: { role?: "admin" } = {}) {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@amora-fit.test`;
   const password = `Amora${Date.now()}x1`;
   const { data, error } = await admin.auth.admin.createUser({
@@ -21,6 +21,11 @@ export async function createTestUser(admin: SupabaseClient) {
     user_metadata: { full_name: "Cliente Teste E2E" },
   });
   if (error || !data.user) throw new Error(`Falha ao criar usuário de teste: ${error?.message}`);
+  if (opts.role === "admin") {
+    // Conta DESCARTÁVEL de teste (apagada no fim do teste).
+    const { error: roleError } = await admin.from("profiles").update({ role: "admin" }).eq("id", data.user.id);
+    if (roleError) throw new Error(`Falha ao preparar admin de teste: ${roleError.message}`);
+  }
   return { id: data.user.id, email, password };
 }
 
@@ -31,6 +36,15 @@ export async function createTestUser(admin: SupabaseClient) {
 export async function cleanupTestUser(admin: SupabaseClient, userId: string) {
   const { data: orders } = await admin.from("orders").select("id, status, items:order_items(variant_id, quantity)").eq("customer_id", userId);
   for (const o of orders ?? []) {
+    const paid = ["PAID", "PROCESSING", "INVOICED", "SHIPPED", "COMPLETED"].includes(o.status);
+    if (paid) {
+      // pagamento deu baixa no estoque: devolve as peças
+      for (const it of (o.items ?? []) as { variant_id: string | null; quantity: number }[]) {
+        if (!it.variant_id) continue;
+        const { data: inv } = await admin.from("inventory").select("on_hand").eq("variant_id", it.variant_id).single();
+        if (inv) await admin.from("inventory").update({ on_hand: inv.on_hand + it.quantity }).eq("variant_id", it.variant_id);
+      }
+    }
     if (o.status === "PENDING" || o.status === "AWAITING_PAYMENT") {
       for (const it of (o.items ?? []) as { variant_id: string | null; quantity: number }[]) {
         if (!it.variant_id) continue;

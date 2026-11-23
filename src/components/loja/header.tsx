@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { getCategories } from "@/lib/catalog/queries";
+import { getCategories, getStoreSettings } from "@/lib/catalog/queries";
 import { CartButton } from "./cart-button";
 import { GarmentIcon, SparkleIcon, TagIcon } from "./garment-icons";
 import { MobileHeader, type MobileNavItem } from "./mobile-header";
 import { SearchBox } from "./search-box";
 
 export async function StoreHeader() {
-  const categories = await getCategories();
+  const [categories, settings] = await Promise.all([getCategories(), getStoreSettings()]);
 
   const nav = [
     { href: "/produtos?ordem=novidades", label: "Novidades", icon: <SparkleIcon className="h-5 w-5" /> },
@@ -28,12 +28,12 @@ export async function StoreHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-creme-300/10 bg-amora-800/95 backdrop-blur-md md:border-b-0">
       {/* Celular: menu + busca | logo | carrinho */}
-      <MobileHeader nav={mobileNav} />
+      <MobileHeader nav={mobileNav} logoUrl={settings.logoUrl} storeName={settings.storeName} />
 
       {/* Desktop: faixa principal */}
       <div className="mx-auto hidden max-w-6xl items-center gap-8 px-4 py-4 md:flex">
         <Link href="/" className="shrink-0 rounded-lg" aria-label="Amora Fit — início">
-          <Logo variant="compact" />
+          <Logo variant="compact" src={settings.logoUrl} alt={settings.storeName} />
         </Link>
 
         <SearchBox className="mx-auto max-w-xl flex-1" />

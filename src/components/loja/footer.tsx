@@ -11,7 +11,7 @@ export async function StoreFooter() {
     <footer className="mt-20 bg-creme-300 text-amora-900/85">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col items-start gap-3">
-          <Logo variant="compact" tone="light" />
+          <Logo variant="compact" tone="light" src={settings.logoUrl} alt={settings.storeName} />
           {settings.tagline && <p className="text-sm">{settings.tagline}</p>}
         </div>
 

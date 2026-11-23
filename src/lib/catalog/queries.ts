@@ -5,6 +5,7 @@ import { publicEnv } from "@/lib/env";
 import { getSupabasePublicClient } from "@/lib/supabase/server";
 import { normalizeProduct, storagePublicUrl, type RawProduct } from "./normalize";
 import type { CatalogProduct, Category, StoreSettings } from "./types";
+import { sectionSchema, type HomeSection } from "@/lib/home/sections";
 
 /**
  * Leituras públicas do catálogo, com cache do Next ("use cache").
@@ -22,7 +23,7 @@ export const SETTINGS_TAG = "store-settings";
 const PRODUCT_SELECT = `
   id, slug, name, description, price_cents, promo_price_cents, is_new, is_featured, created_at,
   category:categories(slug, name),
-  images:product_images(storage_path, alt_text, position),
+  images:product_images(*),
   variants:product_variants(id, color_name, color_hex, size, position, inventory(available))
 `;
 
@@ -135,4 +136,31 @@ export async function getStoreSettings(): Promise<StoreSettings> {
     whatsappOrderGreeting: data.whatsapp_order_greeting,
     whatsappOrderClosing: data.whatsapp_order_closing,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Página inicial configurável
+// ---------------------------------------------------------------------------
+export const HOME_TAG = "home";
+
+/**
+ * Seções no ar (RLS filtra ativas + agendamento). null = tabela ainda não existe
+ * no banco (migration 0012 pendente): a home usa o layout padrão.
+ */
+export async function getHomeSections(): Promise<HomeSection[] | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(HOME_TAG);
+
+  const { data, error } = await getSupabasePublicClient().from("home_sections").select("*").order("position");
+  if (error) {
+    if (error.code === "PGRST205" || error.code === "42P01") return null;
+    throw new Error(`Falha ao carregar a página inicial: ${error.message}`);
+  }
+  const out: HomeSection[] = [];
+  for (const row of data ?? []) {
+    const parsed = sectionSchema.safeParse(row);
+    if (parsed.success) out.push({ ...parsed.data, id: row.id, position: row.position });
+  }
+  return out;
 }

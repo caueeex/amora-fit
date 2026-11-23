@@ -45,7 +45,7 @@ test.describe("compra com finalização pelo WhatsApp", () => {
     // Carrinho persiste entre páginas e calcula valores
     await page.goto("/carrinho");
     await expect(page.getByText("Top Alça Cruzada")).toBeVisible();
-    await expect(page.getByText("R$ 119,80").first()).toBeVisible(); // 2 × 59,90
+    await expect(page.locator("main").getByText("R$ 119,80").first()).toBeVisible(); // 2 × 59,90
     await page.getByRole("link", { name: "Finalizar pedido" }).click();
 
     // Checkout
@@ -59,7 +59,7 @@ test.describe("compra com finalização pelo WhatsApp", () => {
     await page.getByLabel("UF").selectOption("SP");
     await page.getByRole("button", { name: "Salvar endereço" }).click();
     await expect(page.getByText("Avenida Paulista, 1000").first()).toBeVisible();
-    await expect(page.getByText("R$ 119,80").first()).toBeVisible(); // preço vindo do servidor
+    await expect(page.locator("main").getByText("R$ 119,80").first()).toBeVisible(); // preço vindo do servidor
 
     await page.screenshot({ path: testInfo.outputPath("checkout.png"), fullPage: true });
 

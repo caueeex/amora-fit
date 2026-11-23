@@ -27,7 +27,7 @@ export type CatalogProduct = {
   isNew: boolean;
   isFeatured: boolean;
   createdAt: string;
-  images: { url: string; alt: string }[];
+  images: { url: string; alt: string; color?: string | null }[];
   variants: CatalogVariant[];
   colors: CatalogColor[];
   sizes: string[];

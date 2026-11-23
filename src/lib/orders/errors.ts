@@ -15,6 +15,15 @@ const MESSAGES: Record<string, string> = {
   INVALID_TRANSITION: "Essa mudança de status não é permitida para o pedido atual.",
   ORDER_NOT_FOUND: "Pedido não encontrado.",
   STOCK_BELOW_RESERVED: "O estoque não pode ficar abaixo da quantidade reservada em pedidos abertos.",
+  SLUG_TAKEN: "Já existe um produto com esse endereço (slug). Escolha outro.",
+  SKU_TAKEN: "Já existe uma variação com esse código (SKU).",
+  DUPLICATE_VARIANT: "Há variações repetidas (mesma cor e tamanho).",
+  INVALID_PRODUCT: "Dados do produto inválidos. Confira preço, promoção e tamanhos.",
+  INVALID_VARIANTS: "Lista de variações inválida.",
+  PRODUCT_NOT_FOUND: "Produto não encontrado.",
+  VARIANT_NOT_FOUND: "Variação não encontrada.",
+  INVALID_MOVEMENT_TYPE: "Tipo de movimentação inválido.",
+  INVALID_PERIOD: "Período inválido.",
 };
 
 export function amoraCode(error: DbError): string | null {

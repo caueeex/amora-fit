@@ -4,6 +4,9 @@ type LogoProps = {
   /** "dark": para fundos escuros (padrão, letras creme); "light": para fundos claros (letras vinho). */
   tone?: "dark" | "light";
   className?: string;
+  /** Logo enviado no painel (Configurações). Sem ele, usa o logo em texto. */
+  src?: string | null;
+  alt?: string;
 };
 
 /** Ícone da amora (provisório até o arquivo oficial do logo ser enviado). */
@@ -23,7 +26,18 @@ export function AmoraIcon({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ variant = "full", tone = "dark", className = "" }: LogoProps) {
+export function Logo({ variant = "full", tone = "dark", className = "", src, alt = "Amora Fit" }: LogoProps) {
+  if (src) {
+    const img = (
+      // eslint-disable-next-line @next/next/no-img-element -- aceita SVG enviado pelo admin
+      <img src={src} alt={alt} className={variant === "compact" ? "h-9 w-auto max-w-[11rem] object-contain" : "h-20 w-auto max-w-[16rem] object-contain"} />
+    );
+    return tone === "light" ? (
+      <span className={`inline-flex rounded-xl bg-amora-800 px-3 py-2 ${className}`}>{img}</span>
+    ) : (
+      <span className={`inline-flex ${className}`}>{img}</span>
+    );
+  }
   const word = tone === "light" ? "text-amora-800" : "text-creme-300";
   const sub = tone === "light" ? "text-amora-700/80" : "text-creme-200/90";
   if (variant === "compact") {

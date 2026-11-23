@@ -33,7 +33,7 @@ function useOverlay(open: boolean, close: () => void) {
 
 const iconBtn = "grid h-11 w-11 place-items-center rounded-full text-creme-100 transition-colors hover:bg-creme-300/10 active:bg-creme-300/15";
 
-export function MobileHeader({ nav }: { nav: MobileNavItem[] }) {
+export function MobileHeader({ nav, logoUrl, storeName }: { nav: MobileNavItem[]; logoUrl?: string | null; storeName?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -62,7 +62,7 @@ export function MobileHeader({ nav }: { nav: MobileNavItem[] }) {
           </button>
         </div>
         <Link href="/" className="rounded-lg px-2" aria-label="Amora Fit — início">
-          <Logo variant="compact" />
+          <Logo variant="compact" src={logoUrl} alt={storeName} />
         </Link>
         <div className="flex justify-end">
           <CartButton />
@@ -83,7 +83,7 @@ export function MobileHeader({ nav }: { nav: MobileNavItem[] }) {
                 <nav className="relative flex h-full w-[86%] max-w-sm flex-col overflow-y-auto bg-amora-800 shadow-2xl animate-[deslizar_260ms_var(--ease-suave)]">
                   <div className="flex items-center justify-between border-b border-creme-300/10 px-5 py-4">
                     <Link href="/" onClick={closeMenu} aria-label="Amora Fit — início">
-                      <Logo variant="compact" />
+                      <Logo variant="compact" src={logoUrl} alt={storeName} />
                     </Link>
                     <button ref={closeBtn} type="button" onClick={closeMenu} className={iconBtn} aria-label="Fechar menu">
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

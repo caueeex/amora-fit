@@ -132,7 +132,7 @@ for (const p of products) {
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: "image/jpeg", upsert: true, cacheControl: "31536000" });
       if (upErr) throw new Error(`upload ${path}: ${upErr.message}`);
     }
-    rows.push({ product_id: p.id, storage_path: path, alt_text: `${p.name} na cor ${shot.name} (imagem ilustrativa)`, position: i });
+    rows.push({ product_id: p.id, storage_path: path, alt_text: `${p.name} na cor ${shot.name} (imagem ilustrativa)`, color_name: shot.name, position: i });
     total += 1;
   }
 

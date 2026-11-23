@@ -1,58 +1,137 @@
 import { AmoraIcon } from "@/components/brand/logo";
+import { BannerCarousel } from "@/components/loja/banner-carousel";
 import { CategoryCarousel } from "@/components/loja/category-carousel";
 import { Hero } from "@/components/loja/hero";
+import { DoubleBanner, TextBlock } from "@/components/loja/home-blocks";
 import { ProductRow } from "@/components/loja/product-card";
 import { Section } from "@/components/loja/section";
-import { getBestSellerIds, getCatalog, getCategories, getStoreSettings } from "@/lib/catalog/queries";
-import type { CatalogProduct } from "@/lib/catalog/types";
+import { storagePublicUrl } from "@/lib/catalog/normalize";
+import { getBestSellerIds, getCatalog, getCategories, getHomeSections, getStoreSettings } from "@/lib/catalog/queries";
+import type { CatalogProduct, Category } from "@/lib/catalog/types";
+import { publicEnv } from "@/lib/env";
+import { DEFAULT_SECTIONS, type HomeSection } from "@/lib/home/sections";
 
 const available = (p: CatalogProduct) => p.totalAvailable > 0;
+const asset = (path: string | null | undefined) => (path ? storagePublicUrl(publicEnv.supabaseUrl, "store-assets", path) : null);
+
+/** Produtos de uma vitrine conforme a origem configurada no painel. */
+function productsFor(s: Extract<HomeSection, { type: "products" }>, catalog: CatalogProduct[], bestIds: string[]): CatalogProduct[] {
+  const c = s.config;
+  let list: CatalogProduct[];
+  switch (c.source) {
+    case "featured":
+      list = catalog.filter((p) => p.isFeatured && available(p));
+      break;
+    case "new":
+      list = catalog.filter((p) => p.isNew && available(p));
+      break;
+    case "best":
+      list = bestIds.map((id) => catalog.find((p) => p.id === id)).filter((p): p is CatalogProduct => Boolean(p && available(p)));
+      break;
+    case "sale":
+      list = catalog.filter((p) => p.promoPriceCents !== null && available(p));
+      break;
+    case "category":
+      list = catalog.filter((p) => p.categorySlug === c.category_slug).sort((a, b) => Number(available(b)) - Number(available(a)));
+      break;
+    case "manual":
+      list = (c.product_ids ?? []).map((id) => catalog.find((p) => p.id === id)).filter((p): p is CatalogProduct => Boolean(p));
+      break;
+    default:
+      list = [...catalog].sort((a, b) => Number(available(b)) - Number(available(a)));
+  }
+  return list.slice(0, c.limit);
+}
+
+function categoryItems(categories: Category[], catalog: CatalogProduct[]) {
+  const news = catalog.filter((p) => p.isNew && available(p));
+  return [
+    ...(news.length > 0 ? [{ key: "novidades", href: "/produtos?ordem=novidades", label: "Novidades", imageUrl: news[0].images[0]?.url ?? null, iconSlug: "novidades" }] : []),
+    ...categories.map((c) => ({
+      key: c.id,
+      href: `/produtos?categoria=${c.slug}`,
+      label: c.name,
+      imageUrl: c.imageUrl ?? catalog.find((p) => p.categorySlug === c.slug && p.images[0])?.images[0]?.url ?? null,
+      iconSlug: c.slug,
+    })),
+  ];
+}
 
 export default async function HomePage() {
-  const [catalog, settings, categories, bestIds] = await Promise.all([
+  const [catalog, settings, categories, bestIds, sectionsFromDb] = await Promise.all([
     getCatalog(),
     getStoreSettings(),
     getCategories(),
-    getBestSellerIds(8),
+    getBestSellerIds(12),
+    getHomeSections(),
   ]);
-
-  const featured = catalog.filter((p) => p.isFeatured && available(p)).slice(0, 8);
-  const news = catalog.filter((p) => p.isNew && available(p)).slice(0, 8);
-  const best = bestIds
-    .map((id) => catalog.find((p) => p.id === id))
-    .filter((p): p is CatalogProduct => Boolean(p && available(p)))
-    .slice(0, 4);
-  const all = [...catalog].sort((a, b) => Number(available(b)) - Number(available(a)));
+  // Sem a tabela no banco (migration pendente), usa a home padrão.
+  const sections = sectionsFromDb ?? DEFAULT_SECTIONS;
+  // A primeira vitrine carrega as 2 primeiras fotos com prioridade.
+  const firstProductSectionId = sections.find((s) => s.type === "products")?.id;
 
   return (
     <>
-      <Hero settings={settings} categories={categories} products={catalog} />
+      {sections.map((s) => {
+        switch (s.type) {
+          case "hero":
+            return <Hero key={s.id} settings={settings} categories={categories} products={catalog} />;
 
-      {/* Categorias em círculos (carrossel) */}
-      {categories.length > 0 && (
-        <CategoryCarousel
-          title={
-            <h2 className="mb-6 text-center font-display text-2xl font-bold text-creme-50 sm:text-3xl">Categorias</h2>
+          case "banners":
+            return (
+              <BannerCarousel
+                key={s.id}
+                autoplaySeconds={s.config.autoplay_seconds}
+                slides={s.config.slides.map((sl) => ({
+                  image: asset(sl.image_path),
+                  mobileImage: asset(sl.mobile_image_path),
+                  title: sl.title,
+                  subtitle: sl.subtitle,
+                  ctaLabel: sl.cta_label,
+                  ctaHref: sl.cta_href,
+                  align: sl.align,
+                }))}
+              />
+            );
+
+          case "categories":
+            return categories.length > 0 ? (
+              <CategoryCarousel
+                key={s.id}
+                title={s.title ? <h2 className="mb-6 text-center font-display text-2xl font-bold text-creme-50 sm:text-3xl">{s.title}</h2> : null}
+                items={categoryItems(categories, catalog)}
+              />
+            ) : null;
+
+          case "products": {
+            if (catalog.length === 0) return null;
+            const list = productsFor(s, catalog, bestIds);
+            if (list.length === 0) return null;
+            const priority = s.id === firstProductSectionId ? 2 : 0;
+            return (
+              <Section key={s.id} id={`secao-${s.id}`} eyebrow={s.config.eyebrow || undefined} title={s.title} href={s.config.link_href || undefined} hrefLabel="Ver todos">
+                <ProductRow products={list} label={s.title || "Produtos"} priorityCount={priority} />
+              </Section>
+            );
           }
-          items={[
-            ...(news.length > 0
-              ? [{ key: "novidades", href: "/produtos?ordem=novidades", label: "Novidades", imageUrl: news[0].images[0]?.url ?? null, iconSlug: "novidades" }]
-              : []),
-            ...categories.map((c) => {
-              const inCategory = catalog.filter((p) => p.categorySlug === c.slug);
-              return {
-                key: c.id,
-                href: `/produtos?categoria=${c.slug}`,
-                label: c.name,
-                imageUrl: c.imageUrl ?? inCategory.find((p) => p.images[0])?.images[0]?.url ?? null,
-                iconSlug: c.slug,
-              };
-            }),
-          ]}
-        />
-      )}
 
-      {catalog.length === 0 ? (
+          case "double_banner":
+            return (
+              <DoubleBanner
+                key={s.id}
+                items={s.config.items.map((it) => ({ image: asset(it.image_path), title: it.title, subtitle: it.subtitle, href: it.href }))}
+              />
+            );
+
+          case "text":
+            return <TextBlock key={s.id} eyebrow={s.config.eyebrow} title={s.title} body={s.config.body} align={s.config.align} />;
+
+          default:
+            return null;
+        }
+      })}
+
+      {catalog.length === 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-12">
           <div className="rounded-[var(--radius-card)] border border-dashed border-creme-300/25 px-6 py-16 text-center">
             <AmoraIcon className="mx-auto h-10 w-10 text-berry" />
@@ -60,30 +139,6 @@ export default async function HomePage() {
             <p className="mt-2 text-sm text-creme-100/70">Estamos preparando as peças. Volte logo 💜</p>
           </div>
         </section>
-      ) : (
-        <>
-          {featured.length > 0 && (
-            <Section id="destaques" eyebrow="Escolhidos para você" title="Destaques" href="/produtos">
-              <ProductRow products={featured} label="Destaques" priorityCount={2} />
-            </Section>
-          )}
-
-          {news.length > 0 && (
-            <Section id="novidades" eyebrow="Acabou de chegar" title="Novidades" href="/produtos?ordem=novidades">
-              <ProductRow products={news} label="Novidades" />
-            </Section>
-          )}
-
-          {best.length > 0 && (
-            <Section id="mais-vendidos" eyebrow="As queridinhas" title="Mais vendidos">
-              <ProductRow products={best} label="Mais vendidos" />
-            </Section>
-          )}
-
-          <Section id="todos" eyebrow="Coleção completa" title="Todos os produtos" href="/produtos" hrefLabel="Ver todos">
-            <ProductRow products={all.slice(0, 16)} label="Todos os produtos" />
-          </Section>
-        </>
       )}
     </>
   );
