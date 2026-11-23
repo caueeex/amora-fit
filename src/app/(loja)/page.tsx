@@ -2,7 +2,8 @@ import { AmoraIcon } from "@/components/brand/logo";
 import { BannerCarousel } from "@/components/loja/banner-carousel";
 import { CategoryCarousel } from "@/components/loja/category-carousel";
 import { Hero } from "@/components/loja/hero";
-import { DoubleBanner, TextBlock } from "@/components/loja/home-blocks";
+import { DoubleBanner, ImageTiles, LinkCards, TextBlock } from "@/components/loja/home-blocks";
+import { VideoShowcase } from "@/components/loja/video-showcase";
 import { ProductRow } from "@/components/loja/product-card";
 import { Section } from "@/components/loja/section";
 import { storagePublicUrl } from "@/lib/catalog/normalize";
@@ -13,6 +14,7 @@ import { DEFAULT_SECTIONS, type HomeSection } from "@/lib/home/sections";
 
 const available = (p: CatalogProduct) => p.totalAvailable > 0;
 const asset = (path: string | null | undefined) => (path ? storagePublicUrl(publicEnv.supabaseUrl, "store-assets", path) : null);
+const videoUrl = (path: string | null | undefined) => (path ? storagePublicUrl(publicEnv.supabaseUrl, "store-videos", path) : null);
 
 /** Produtos de uma vitrine conforme a origem configurada no painel. */
 function productsFor(s: Extract<HomeSection, { type: "products" }>, catalog: CatalogProduct[], bestIds: string[]): CatalogProduct[] {
@@ -85,6 +87,7 @@ export default async function HomePage() {
                 slides={s.config.slides.map((sl) => ({
                   image: asset(sl.image_path),
                   mobileImage: asset(sl.mobile_image_path),
+                  video: videoUrl(sl.video_path),
                   title: sl.title,
                   subtitle: sl.subtitle,
                   ctaLabel: sl.cta_label,
@@ -125,6 +128,35 @@ export default async function HomePage() {
 
           case "text":
             return <TextBlock key={s.id} eyebrow={s.config.eyebrow} title={s.title} body={s.config.body} align={s.config.align} />;
+
+          case "image_tiles":
+            return (
+              <ImageTiles
+                key={s.id}
+                title={s.title}
+                items={s.config.items.map((it) => ({ image: asset(it.image_path), label: it.label, ctaLabel: it.cta_label, href: it.href }))}
+              />
+            );
+
+          case "link_cards":
+            return <LinkCards key={s.id} title={s.title} items={s.config.items} />;
+
+          case "videos": {
+            const items = s.config.items
+              .filter((it) => it.video_path)
+              .map((it) => {
+                const p = it.product_id ? catalog.find((c) => c.id === it.product_id) : undefined;
+                return {
+                  video: videoUrl(it.video_path)!,
+                  poster: asset(it.poster_path),
+                  caption: it.caption,
+                  product: p
+                    ? { slug: p.slug, name: p.name, priceCents: p.priceCents, promoPriceCents: p.promoPriceCents, image: p.images[0]?.url ?? null, isNew: p.isNew }
+                    : null,
+                };
+              });
+            return items.length ? <VideoShowcase key={s.id} title={s.title} items={items} /> : null;
+          }
 
           default:
             return null;

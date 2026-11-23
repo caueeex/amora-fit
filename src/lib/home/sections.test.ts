@@ -44,3 +44,23 @@ describe("sectionSchema", () => {
     expect(scheduleState({ is_active: true, starts_at: null, ends_at: null }, now)).toBe("live");
   });
 });
+
+describe("novos tipos de seção", () => {
+  const vid = "videos/00000000-0000-4000-8000-000000000001.mp4";
+  it("cards com imagem e atalhos em texto", () => {
+    expect(sectionSchema.safeParse({ type: "image_tiles", title: "Compre por tamanho", config: { items: [{ image_path: null, label: "PP", href: "/produtos?tamanho=PP" }] } }).success).toBe(true);
+    expect(sectionSchema.safeParse({ type: "image_tiles", config: { items: [{ image_path: null, label: "", href: "" }] } }).success).toBe(false);
+    expect(sectionSchema.safeParse({ type: "link_cards", config: { items: [{ label: "Até R$ 180", href: "/produtos?max=180" }] } }).success).toBe(true);
+    expect(sectionSchema.safeParse({ type: "link_cards", config: { items: [{ label: "x", href: "javascript:alert(1)" }] } }).success).toBe(false);
+  });
+
+  it("vídeos exigem arquivo válido; produto é opcional", () => {
+    expect(sectionSchema.safeParse({ type: "videos", config: { items: [{ video_path: vid, product_id: null }] } }).success).toBe(true);
+    expect(sectionSchema.safeParse({ type: "videos", config: { items: [{ video_path: null }] } }).success).toBe(false);
+    expect(sectionSchema.safeParse({ type: "videos", config: { items: [{ video_path: "videos/x.exe" }] } }).success).toBe(false);
+  });
+
+  it("slide de banner pode ter só vídeo", () => {
+    expect(sectionSchema.safeParse({ type: "banners", config: { slides: [{ image_path: null, video_path: vid, title: "" }] } }).success).toBe(true);
+  });
+});

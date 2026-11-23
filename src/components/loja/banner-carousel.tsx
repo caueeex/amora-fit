@@ -9,6 +9,8 @@ import { buttonClasses } from "@/components/ui/button";
 export type BannerSlide = {
   image: string | null;
   mobileImage: string | null;
+  /** Vídeo de fundo (sem som, em repetição). A imagem vira a capa enquanto carrega. */
+  video: string | null;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -62,10 +64,23 @@ export function BannerCarousel({ slides, autoplaySeconds }: { slides: BannerSlid
         {slides.map((s, i) => {
           const content = (
             <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-br from-amora-600 via-amora-700 to-amora-950 sm:aspect-[21/9]">
-              {s.image || s.mobileImage ? (
+              {s.video ? (
+                <video
+                  src={s.video}
+                  poster={s.image ?? s.mobileImage ?? undefined}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload={i === 0 ? "auto" : "metadata"}
+                  className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
+                  aria-hidden="true"
+                />
+              ) : null}
+              {s.video && !(s.image || s.mobileImage) ? null : s.image || s.mobileImage ? (
                 <>
-                  <Image src={(s.mobileImage ?? s.image)!} alt="" fill priority={i === 0} sizes="100vw" className="object-cover sm:hidden" />
-                  <Image src={(s.image ?? s.mobileImage)!} alt="" fill priority={i === 0} sizes="(min-width: 1152px) 1152px, 100vw" className="hidden object-cover sm:block" />
+                  <Image src={(s.mobileImage ?? s.image)!} alt="" fill priority={i === 0} sizes="100vw" className={`object-cover sm:hidden ${s.video ? "motion-safe:hidden" : ""}`} />
+                  <Image src={(s.image ?? s.mobileImage)!} alt="" fill priority={i === 0} sizes="(min-width: 1152px) 1152px, 100vw" className={`hidden object-cover sm:block ${s.video ? "motion-safe:sm:hidden" : ""}`} />
                 </>
               ) : (
                 <AmoraIcon className="absolute -right-6 -top-6 h-56 w-56 text-berry/15" />

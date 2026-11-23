@@ -11,16 +11,26 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 export type Result = { ok: true; id?: string } | { ok: false; error: string };
 const id = z.uuid();
 
-/** Caminhos de imagem usados numa config (para limpar arquivos que deixaram de ser usados). */
-function imagePaths(config: unknown): string[] {
+/** Arquivos usados numa config (para limpar os que deixaram de ser usados). */
+function mediaPaths(config: unknown, kind: "image" | "video"): string[] {
+  const re = kind === "image" ? /^(banners|categories)\// : /^videos\//;
   const out: string[] = [];
   const walk = (v: unknown) => {
-    if (typeof v === "string" && /^(banners|categories)\//.test(v)) out.push(v);
+    if (typeof v === "string" && re.test(v)) out.push(v);
     else if (Array.isArray(v)) v.forEach(walk);
     else if (v && typeof v === "object") Object.values(v).forEach(walk);
   };
   walk(config);
   return out;
+}
+
+/** Remove do Storage imagens/vídeos que estavam em "before" e não estão em "after". */
+async function removeUnused(supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>, before: unknown, after: unknown) {
+  const keep = { image: mediaPaths(after, "image"), video: mediaPaths(after, "video") };
+  const img = mediaPaths(before, "image").filter((p) => !keep.image.includes(p));
+  const vid = mediaPaths(before, "video").filter((p) => !keep.video.includes(p));
+  if (img.length) await supabase.storage.from("store-assets").remove(img);
+  if (vid.length) await supabase.storage.from("store-videos").remove(vid);
 }
 
 export async function saveSectionAction(raw: unknown): Promise<Result> {
@@ -35,8 +45,7 @@ export async function saveSectionAction(raw: unknown): Promise<Result> {
     const { data: old } = await supabase.from("home_sections").select("config").eq("id", s.id).maybeSingle();
     const { error } = await supabase.from("home_sections").update(row).eq("id", s.id);
     if (error) return { ok: false, error: "Não foi possível salvar a seção." };
-    const unused = imagePaths(old?.config).filter((p) => !imagePaths(s.config).includes(p));
-    if (unused.length) await supabase.storage.from("store-assets").remove(unused);
+    await removeUnused(supabase, old?.config, s.config);
     updateTag(HOME_TAG);
     return { ok: true, id: s.id };
   }
@@ -97,8 +106,7 @@ export async function deleteSectionAction(sectionId: string): Promise<Result> {
   const { data: old } = await supabase.from("home_sections").select("config").eq("id", sectionId).maybeSingle();
   const { error } = await supabase.from("home_sections").delete().eq("id", sectionId);
   if (error) return { ok: false, error: "Não foi possível excluir." };
-  const paths = imagePaths(old?.config);
-  if (paths.length) await supabase.storage.from("store-assets").remove(paths);
+  await removeUnused(supabase, old?.config, {});
   updateTag(HOME_TAG);
   refresh();
   return { ok: true };
@@ -118,6 +126,24 @@ export async function addSectionAction(type: SectionType): Promise<Result> {
       config: { items: [{ image_path: null, title: "Leggings", subtitle: "", href: "/produtos?categoria=leggings" }, { image_path: null, title: "Conjuntos", subtitle: "", href: "/produtos?categoria=conjuntos" }] },
     },
     text: { title: "Sobre a Amora", is_active: false, config: { eyebrow: "", body: "Escreva aqui.", align: "center" } },
+    image_tiles: {
+      title: "Compre por tamanho",
+      is_active: false,
+      config: { items: ["PP", "P", "M", "G", "GG"].map((t) => ({ image_path: null, label: t, cta_label: "Comprar", href: `/produtos?tamanho=${t}` })) },
+    },
+    link_cards: {
+      title: "Compre do seu jeito",
+      is_active: false,
+      config: {
+        items: [
+          { label: "Até R$ 80", href: "/produtos?max=80" },
+          { label: "Até R$ 120", href: "/produtos?max=120" },
+          { label: "Acima de R$ 120", href: "/produtos?min=120" },
+        ],
+      },
+    },
+    // Vídeos: a seção nasce vazia e desligada; os vídeos são enviados no editor.
+    videos: { title: "Veja no corpo. Sinta o movimento.", is_active: false, config: { items: [] } },
   };
   return saveSectionAction({ type, ...(defaults[type] as object) });
 }

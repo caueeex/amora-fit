@@ -40,3 +40,13 @@ describe("home_sections", () => {
     ).toMatch(/home_sections_period/);
   });
 });
+
+describe("home_sections — tipos de mídia (0013)", () => {
+  it("aceita cards com imagem, atalhos em texto e vídeos", async () => {
+    for (const t of ["image_tiles", "link_cards", "videos"]) {
+      await asUser(db, admin, (tx) => tx.query(`insert into public.home_sections (type, title) values ($1, 'x')`, [t]));
+    }
+    const { rows } = await db.query<{ n: number }>(`select count(*)::int as n from public.home_sections where type in ('image_tiles','link_cards','videos')`);
+    expect(rows[0].n).toBe(3);
+  });
+});

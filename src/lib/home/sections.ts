@@ -20,8 +20,14 @@ const imagePath = z
   .regex(/^(banners|categories)\/[0-9a-f-]{36}\.(webp|jpg|jpeg|png|avif)$/i, { error: "Imagem inválida." })
   .nullable();
 
+const videoPath = z
+  .string()
+  .regex(/^videos\/[0-9a-f-]{36}\.(mp4|webm)$/i, { error: "Vídeo inválido." })
+  .nullable();
+
 export const slideSchema = z.object({
   image_path: imagePath,
+  video_path: videoPath.optional().default(null),
   mobile_image_path: imagePath.optional().default(null),
   title: z.string().trim().max(80).default(""),
   subtitle: z.string().trim().max(200).default(""),
@@ -72,6 +78,42 @@ const configs = {
     body: z.string().trim().max(3000).default(""),
     align: z.enum(["left", "center"]).default("center"),
   }),
+  image_tiles: z.object({
+    items: z
+      .array(
+        z.object({
+          image_path: imagePath,
+          label: z.string().trim().min(1, { error: "Cada card precisa de um texto." }).max(30),
+          cta_label: z.string().trim().max(20).default("Comprar"),
+          href: safeHref.default(""),
+        }),
+      )
+      .min(1, { error: "Adicione ao menos um card." })
+      .max(8),
+  }),
+  link_cards: z.object({
+    items: z
+      .array(
+        z.object({
+          label: z.string().trim().min(1, { error: "Cada atalho precisa de um texto." }).max(40),
+          href: safeHref.default(""),
+        }),
+      )
+      .min(1, { error: "Adicione ao menos um atalho." })
+      .max(6),
+  }),
+  videos: z.object({
+    items: z
+      .array(
+        z.object({
+          video_path: videoPath,
+          poster_path: imagePath.optional().default(null),
+          product_id: z.uuid().nullable().default(null),
+          caption: z.string().trim().max(80).default(""),
+        }),
+      )
+      .max(10),
+  }),
 } as const;
 
 export type SectionType = keyof typeof configs;
@@ -84,6 +126,9 @@ export const SECTION_LABEL: Record<SectionType, { label: string; hint: string }>
   products: { label: "Vitrine de produtos", hint: "Fileira de produtos em carrossel" },
   double_banner: { label: "Banner duplo", hint: "Duas imagens lado a lado com link" },
   text: { label: "Bloco de texto", hint: "Texto institucional, ex.: sobre a marca" },
+  image_tiles: { label: "Cards com imagem", hint: "Ex.: “Compre por tamanho” — foto com texto grande e link" },
+  link_cards: { label: "Atalhos em texto", hint: "Ex.: “Compre do seu jeito” — faixas de preço" },
+  videos: { label: "Vídeos com produtos", hint: "Ex.: “Veja no corpo” — vídeos verticais com o produto" },
 };
 
 const isoOrNull = z
@@ -115,11 +160,15 @@ export const sectionSchema = z
     z.object({ ...base, type: z.literal("products"), config: configs.products }),
     z.object({ ...base, type: z.literal("double_banner"), config: configs.double_banner }),
     z.object({ ...base, type: z.literal("text"), config: configs.text }),
+    z.object({ ...base, type: z.literal("image_tiles"), config: configs.image_tiles }),
+    z.object({ ...base, type: z.literal("link_cards"), config: configs.link_cards }),
+    z.object({ ...base, type: z.literal("videos"), config: configs.videos }),
   ])
   .refine((s) => !s.starts_at || !s.ends_at || s.ends_at > s.starts_at, { error: "O fim precisa ser depois do início.", path: ["ends_at"] })
   .refine((s) => s.type !== "products" || s.config.source !== "category" || Boolean(s.config.category_slug), { error: "Escolha a categoria da vitrine.", path: ["config"] })
   .refine((s) => s.type !== "products" || s.config.source !== "manual" || (s.config.product_ids?.length ?? 0) > 0, { error: "Escolha ao menos um produto.", path: ["config"] })
-  .refine((s) => s.type !== "banners" || s.config.slides.every((sl) => sl.image_path || sl.title), { error: "Cada slide precisa de uma imagem ou de um título.", path: ["config"] });
+  .refine((s) => s.type !== "banners" || s.config.slides.every((sl) => sl.image_path || sl.video_path || sl.title), { error: "Cada slide precisa de uma imagem, um vídeo ou um título.", path: ["config"] })
+  .refine((s) => s.type !== "videos" || s.config.items.every((it) => it.video_path), { error: "Envie o vídeo de cada item.", path: ["config"] });
 
 export type HomeSection = z.output<typeof sectionSchema> & { id: string; position: number };
 export type SectionInput = z.input<typeof sectionSchema>;

@@ -51,3 +51,71 @@ export function TextBlock({ eyebrow, title, body, align }: { eyebrow: string; ti
     </section>
   );
 }
+
+function SectionTitle({ title }: { title: string }) {
+  return title ? <h2 className="mb-6 text-center font-display text-2xl font-bold uppercase tracking-wide text-creme-50 sm:text-3xl">{title}</h2> : null;
+}
+
+/** Cards com foto e texto grande (ex.: "Compre por tamanho"). */
+export function ImageTiles({ title, items }: { title: string; items: { image: string | null; label: string; ctaLabel: string; href: string }[] }) {
+  return (
+    <section className="mx-auto max-w-6xl px-4 pt-14">
+      <SectionTitle title={title} />
+      <ul className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-flow-col sm:auto-cols-fr sm:overflow-visible sm:px-0 sm:gap-5">
+        {items.map((it, i) => {
+          const card = (
+            <div className="group relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-amora-600 via-amora-700 to-amora-900">
+              {it.image ? (
+                <Image src={it.image} alt="" fill sizes="(min-width: 640px) 20vw, 42vw" className="object-cover transition-transform duration-700 ease-[var(--ease-suave)] group-hover:scale-105" />
+              ) : (
+                <AmoraIcon className="absolute -right-3 -top-3 h-28 w-28 text-berry/15" />
+              )}
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-tinta/65 via-tinta/5 to-transparent p-4 sm:p-5">
+                <span className="font-display text-4xl font-bold leading-none text-creme-50 sm:text-5xl">{it.label}</span>
+                {it.ctaLabel && <span className="mt-2 w-fit border-b border-creme-100/70 text-xs font-medium uppercase tracking-[0.15em] text-creme-100 transition-colors group-hover:border-creme-300 group-hover:text-creme-300">{it.ctaLabel}</span>}
+              </div>
+            </div>
+          );
+          return (
+            <li key={i} className="w-[42%] shrink-0 snap-start sm:w-auto">
+              {it.href ? <Link href={it.href}>{card}</Link> : card}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+// Classes completas (o Tailwind não gera classes montadas dinamicamente).
+const LINK_COLS: Record<number, string> = {
+  1: "",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2 lg:grid-cols-4",
+  5: "sm:grid-cols-3 lg:grid-cols-5",
+  6: "sm:grid-cols-3 lg:grid-cols-6",
+};
+
+/** Atalhos só com texto (ex.: "Compre do seu jeito" por faixa de preço). */
+export function LinkCards({ title, items }: { title: string; items: { label: string; href: string }[] }) {
+  return (
+    <section className="mx-auto max-w-6xl px-4 pt-14">
+      <SectionTitle title={title} />
+      <ul className={`grid gap-3 sm:gap-5 ${LINK_COLS[Math.min(items.length, 6)]}`}>
+        {items.map((it, i) => (
+          <li key={i}>
+            <Link
+              href={it.href || "/produtos"}
+              className="group grid min-h-28 place-items-center rounded-[var(--radius-card)] border border-creme-300/15 bg-amora-700/40 px-4 py-8 text-center transition-colors hover:border-creme-300/50 hover:bg-amora-700/70"
+            >
+              <span className="border-b-2 border-creme-100/60 font-display text-2xl font-bold uppercase tracking-wide text-creme-50 transition-colors group-hover:border-creme-300 group-hover:text-creme-300 sm:text-3xl">
+                {it.label}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

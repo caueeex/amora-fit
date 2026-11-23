@@ -43,6 +43,15 @@ export async function listAdminSections(): Promise<AdminSectionRow[] | null> {
       } else if (s.type === "products") summary = `${PRODUCT_SOURCES[s.config.source]} · até ${s.config.limit} produtos`;
       else if (s.type === "double_banner") thumb = assetUrl(s.config.items[0]?.image_path);
       else if (s.type === "text") summary = s.config.body.slice(0, 80);
+      else if (s.type === "image_tiles") {
+        summary = s.config.items.map((i) => i.label).join(" · ");
+        thumb = assetUrl(s.config.items.find((i) => i.image_path)?.image_path);
+      } else if (s.type === "link_cards") summary = s.config.items.map((i) => i.label).join(" · ");
+      else if (s.type === "videos") {
+        const n = s.config.items.filter((i) => i.video_path).length;
+        summary = n ? `${n} vídeo(s)` : "nenhum vídeo enviado ainda";
+        thumb = assetUrl(s.config.items.find((i) => i.poster_path)?.poster_path);
+      }
     }
     return {
       id: row.id,

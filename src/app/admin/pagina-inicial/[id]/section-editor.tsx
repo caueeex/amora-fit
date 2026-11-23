@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { AdminButton, AdminInput, AdminSelect, AdminTextarea, Card, CardTitle } from "@/components/admin/ui";
 import { PRODUCT_SOURCES, SECTION_LABEL, type HomeSection } from "@/lib/home/sections";
-import { uploadStoreAsset } from "@/lib/images/upload-asset";
+import { uploadStoreAsset, uploadStoreVideo } from "@/lib/images/upload-asset";
 import { saveSectionAction } from "../actions";
 
 type Picker = { id: string; name: string; status: string; thumb: string | null };
@@ -75,6 +75,57 @@ function ImageField({ label, path, url, onChange, folder = "banners", hint }: { 
   );
 }
 
+/** Campo de vídeo com envio para o Storage (store-videos) e prévia. */
+function VideoField({ label, path, url, onChange, hint, className = "" }: { label: string; path: string | null; url: string | null; onChange: (path: string | null, preview: string | null) => void; hint?: string; className?: string }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className={`flex flex-col gap-1.5 text-sm ${className}`}>
+      <span className="font-medium text-amora-950">{label}</span>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => input.current?.click()} className="relative grid h-28 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-dashed border-amora-900/25 bg-amora-100/30 text-center text-[11px] text-amora-900/60 hover:border-amora-700">
+          {url ? <video src={url} muted loop playsInline autoPlay className="h-full w-full object-cover" /> : busy ? "enviando…" : "+ vídeo"}
+        </button>
+        <div className="flex flex-col gap-1">
+          <AdminButton type="button" variant="secondary" className="min-h-9" loading={busy} onClick={() => input.current?.click()}>
+            {path ? "Trocar vídeo" : "Enviar vídeo"}
+          </AdminButton>
+          {path && (
+            <button type="button" className="text-left text-xs text-red-700 hover:underline" onClick={() => onChange(null, null)}>
+              Remover vídeo
+            </button>
+          )}
+        </div>
+      </div>
+      {hint && <span className="text-xs text-amora-900/50">{hint}</span>}
+      {busy && <span className="text-xs text-amora-900/60">Enviando vídeo… pode levar alguns segundos.</span>}
+      {error && <span className="text-xs text-red-700">{error}</span>}
+      <input
+        ref={input}
+        type="file"
+        accept="video/mp4,video/webm"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setBusy(true);
+          setError(null);
+          try {
+            const p = await uploadStoreVideo(f);
+            onChange(p, URL.createObjectURL(f));
+          } catch (err) {
+            setError((err as Error).message);
+          } finally {
+            setBusy(false);
+            e.target.value = "";
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 export function SectionEditor({ section, assetBase, products, categories }: { section: HomeSection; assetBase: string; products: Picker[]; categories: Cat[] }) {
   const router = useRouter();
   const [s, setS] = useState<HomeSection>(section);
@@ -84,6 +135,8 @@ export function SectionEditor({ section, assetBase, products, categories }: { se
   const [productFilter, setProductFilter] = useState("");
 
   const urlOf = (key: string, path: string | null | undefined) => (key in previews ? previews[key] : path ? `${assetBase}/${path}` : null);
+  const videoBase = assetBase.replace("/store-assets", "/store-videos");
+  const videoUrlOf = (key: string, path: string | null | undefined) => (key in previews ? previews[key] : path ? `${videoBase}/${path}` : null);
   const patch = (p: Partial<HomeSection>) => {
     setS((cur) => ({ ...cur, ...p }) as HomeSection);
     setStatus(null);
@@ -181,6 +234,14 @@ export function SectionEditor({ section, assetBase, products, categories }: { se
                       path={sl.mobile_image_path ?? null}
                       url={urlOf(`s${i}m`, sl.mobile_image_path)}
                       onChange={(p, prev) => (setPreviews((x) => ({ ...x, [`s${i}m`]: prev })), setSlide({ mobile_image_path: p }))}
+                    />
+                    <VideoField
+                      className="lg:col-span-2"
+                      label="Vídeo de fundo (opcional)"
+                      hint="Substitui a imagem enquanto toca, sem som e em repetição. A imagem vira a capa enquanto o vídeo carrega."
+                      path={sl.video_path ?? null}
+                      url={videoUrlOf(`s${i}v`, sl.video_path)}
+                      onChange={(p, prev) => (setPreviews((x) => ({ ...x, [`s${i}v`]: prev })), setSlide({ video_path: p }))}
                     />
                     <AdminInput label="Título" maxLength={80} value={sl.title} onChange={(e) => setSlide({ title: e.target.value })} />
                     <AdminInput label="Texto de apoio" maxLength={200} value={sl.subtitle} onChange={(e) => setSlide({ subtitle: e.target.value })} />
@@ -305,6 +366,170 @@ export function SectionEditor({ section, assetBase, products, categories }: { se
               <option value="left">À esquerda</option>
             </AdminSelect>
           </div>
+        </Card>
+      )}
+
+      {s.type === "image_tiles" && (
+        <Card>
+          <CardTitle
+            action={
+              <AdminButton
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  window.confirm("Substituir os cards pelos tamanhos PP, P, M, G e GG?") &&
+                  patchConfig({ items: ["PP", "P", "M", "G", "GG"].map((t) => ({ image_path: null, label: t, cta_label: "Comprar", href: `/produtos?tamanho=${t}` })) })
+                }
+              >
+                Preencher com tamanhos
+              </AdminButton>
+            }
+          >
+            Cards
+          </CardTitle>
+          <ol className="grid gap-4 lg:grid-cols-2">
+            {s.config.items.map((it, i) => {
+              const setItem = (p: Record<string, unknown>) => patchConfig({ items: s.config.items.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+              const move = (d: -1 | 1) => {
+                const arr = [...s.config.items];
+                [arr[i], arr[i + d]] = [arr[i + d], arr[i]];
+                patchConfig({ items: arr });
+              };
+              return (
+                <li key={i} className="flex flex-col gap-3 rounded-2xl border border-amora-900/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Card {i + 1}</span>
+                    <div className="flex gap-1">
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2" disabled={i === 0} onClick={() => move(-1)} aria-label="Mover para a esquerda">
+                        ←
+                      </AdminButton>
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2" disabled={i === s.config.items.length - 1} onClick={() => move(1)} aria-label="Mover para a direita">
+                        →
+                      </AdminButton>
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2 text-red-700" disabled={s.config.items.length === 1} onClick={() => patchConfig({ items: s.config.items.filter((_, j) => j !== i) })}>
+                        Remover
+                      </AdminButton>
+                    </div>
+                  </div>
+                  <ImageField label="Foto" hint="Vertical, ideal 800 × 1000 px." path={it.image_path} url={urlOf(`t${i}`, it.image_path)} onChange={(p, prev) => (setPreviews((x) => ({ ...x, [`t${i}`]: prev })), setItem({ image_path: p }))} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <AdminInput label="Texto grande" maxLength={30} placeholder="Ex.: PP" value={it.label} onChange={(e) => setItem({ label: e.target.value })} />
+                    <AdminInput label="Texto do link" maxLength={20} value={it.cta_label} onChange={(e) => setItem({ cta_label: e.target.value })} />
+                  </div>
+                  <AdminInput label="Link" placeholder="/produtos?tamanho=PP" value={it.href} onChange={(e) => setItem({ href: e.target.value })} />
+                </li>
+              );
+            })}
+          </ol>
+          {s.config.items.length < 8 && (
+            <AdminButton type="button" variant="secondary" className="mt-4" onClick={() => patchConfig({ items: [...s.config.items, { image_path: null, label: "Novo", cta_label: "Comprar", href: "/produtos" }] })}>
+              + Adicionar card
+            </AdminButton>
+          )}
+        </Card>
+      )}
+
+      {s.type === "link_cards" && (
+        <Card>
+          <CardTitle
+            action={
+              <AdminButton
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  window.confirm("Substituir pelos atalhos de faixa de preço?") &&
+                  patchConfig({
+                    items: [
+                      { label: "Até R$ 80", href: "/produtos?max=80" },
+                      { label: "Até R$ 120", href: "/produtos?max=120" },
+                      { label: "Acima de R$ 120", href: "/produtos?min=120" },
+                    ],
+                  })
+                }
+              >
+                Preencher com faixas de preço
+              </AdminButton>
+            }
+          >
+            Atalhos
+          </CardTitle>
+          <ol className="flex flex-col gap-3">
+            {s.config.items.map((it, i) => {
+              const setItem = (p: Record<string, unknown>) => patchConfig({ items: s.config.items.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+              return (
+                <li key={i} className="grid items-end gap-3 rounded-2xl border border-amora-900/10 p-3 sm:grid-cols-[1fr_1fr_auto]">
+                  <AdminInput label={`Texto do atalho ${i + 1}`} maxLength={40} placeholder="Até R$ 180" value={it.label} onChange={(e) => setItem({ label: e.target.value })} />
+                  <AdminInput label="Link" placeholder="/produtos?max=180" value={it.href} onChange={(e) => setItem({ href: e.target.value })} />
+                  <AdminButton type="button" variant="ghost" className="text-red-700" disabled={s.config.items.length === 1} onClick={() => patchConfig({ items: s.config.items.filter((_, j) => j !== i) })}>
+                    Remover
+                  </AdminButton>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="mt-3 text-xs text-amora-900/55">
+            Links úteis: <code>/produtos?max=180</code> (até R$ 180), <code>/produtos?min=241</code> (a partir de R$ 241), <code>/produtos?oferta=1</code> (promoções), <code>/produtos?tamanho=M</code>.
+          </p>
+          {s.config.items.length < 6 && (
+            <AdminButton type="button" variant="secondary" className="mt-4" onClick={() => patchConfig({ items: [...s.config.items, { label: "Novo atalho", href: "/produtos" }] })}>
+              + Adicionar atalho
+            </AdminButton>
+          )}
+        </Card>
+      )}
+
+      {s.type === "videos" && (
+        <Card>
+          <CardTitle>Vídeos</CardTitle>
+          <p className="-mt-2 mb-4 text-xs text-amora-900/55">
+            Vídeos verticais (9:16) de 10 a 20 segundos, MP4 até 50 MB. Tocam sem som, em repetição, só quando aparecem na tela. Ligue cada vídeo a um produto para mostrar o card com
+            preço e botão “Comprar”.
+          </p>
+          <ol className="grid gap-4 lg:grid-cols-2">
+            {s.config.items.map((it, i) => {
+              const setItem = (p: Record<string, unknown>) => patchConfig({ items: s.config.items.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+              const move = (d: -1 | 1) => {
+                const arr = [...s.config.items];
+                [arr[i], arr[i + d]] = [arr[i + d], arr[i]];
+                patchConfig({ items: arr });
+              };
+              return (
+                <li key={i} className="flex flex-col gap-3 rounded-2xl border border-amora-900/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Vídeo {i + 1}</span>
+                    <div className="flex gap-1">
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2" disabled={i === 0} onClick={() => move(-1)} aria-label="Mover para a esquerda">
+                        ←
+                      </AdminButton>
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2" disabled={i === s.config.items.length - 1} onClick={() => move(1)} aria-label="Mover para a direita">
+                        →
+                      </AdminButton>
+                      <AdminButton type="button" variant="ghost" className="min-h-8 px-2 text-red-700" onClick={() => patchConfig({ items: s.config.items.filter((_, j) => j !== i) })}>
+                        Remover
+                      </AdminButton>
+                    </div>
+                  </div>
+                  <VideoField label="Vídeo" path={it.video_path} url={videoUrlOf(`v${i}`, it.video_path)} onChange={(p, prev) => (setPreviews((x) => ({ ...x, [`v${i}`]: prev })), setItem({ video_path: p }))} />
+                  <ImageField label="Capa (opcional)" hint="Aparece enquanto o vídeo carrega." path={it.poster_path ?? null} url={urlOf(`p${i}`, it.poster_path)} onChange={(p, prev) => (setPreviews((x) => ({ ...x, [`p${i}`]: prev })), setItem({ poster_path: p }))} />
+                  <AdminSelect label="Produto ligado" value={it.product_id ?? ""} onChange={(e) => setItem({ product_id: e.target.value || null })}>
+                    <option value="">Nenhum (só o vídeo)</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                        {p.status !== "active" ? " (rascunho)" : ""}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                  {!it.product_id && <AdminInput label="Legenda (opcional, quando não há produto)" maxLength={80} value={it.caption} onChange={(e) => setItem({ caption: e.target.value })} />}
+                </li>
+              );
+            })}
+          </ol>
+          {s.config.items.length < 10 && (
+            <AdminButton type="button" variant="secondary" className="mt-4" onClick={() => patchConfig({ items: [...s.config.items, { video_path: null, poster_path: null, product_id: null, caption: "" }] })}>
+              + Adicionar vídeo
+            </AdminButton>
+          )}
         </Card>
       )}
 
