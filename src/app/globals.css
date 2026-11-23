@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/*
+ * Identidade Amora Fit
+ * vinho #560832 · vinho secundário #6B1544 · amarelo claro #FFEC9E · preto #0A0A0A
+ * As cores ficam aqui como tokens; componentes nunca usam hex soltos.
+ */
+@theme {
+  --color-amora-950: #2a0418;
+  --color-amora-900: #3d0623;
+  --color-amora-800: #560832; /* principal */
+  --color-amora-700: #6b1544; /* secundário */
+  --color-amora-600: #852456;
+  --color-amora-500: #a3426f;
+  --color-amora-300: #d99ab8;
+  --color-amora-100: #f6e4ec;
+
+  --color-creme-300: #ffec9e; /* destaque */
+  --color-creme-200: #fff3c4;
+  --color-creme-100: #fff8e1;
+  --color-creme-50: #fffcf2;
+
+  --color-berry: #c48a6a; /* tom do ícone (amora/folha) */
+  --color-tinta: #0a0a0a;
+
+  --color-sucesso: #2f7d5b;
+  --color-alerta: #b7791f;
+  --color-erro: #c0392b;
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(10 10 10 / 0.06), 0 8px 24px -12px rgb(42 4 24 / 0.35);
+
+  --ease-suave: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-amora-800 text-creme-100 font-sans antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-creme-300;
+  }
+
+  ::selection {
+    @apply bg-creme-300 text-amora-900;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes subir {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
