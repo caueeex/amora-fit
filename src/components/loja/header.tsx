@@ -3,6 +3,7 @@ import { Logo } from "@/components/brand/logo";
 import { getCategories } from "@/lib/catalog/queries";
 import { CartButton } from "./cart-button";
 import { GarmentIcon, SparkleIcon, TagIcon } from "./garment-icons";
+import { MobileHeader, type MobileNavItem } from "./mobile-header";
 import { SearchBox } from "./search-box";
 
 export async function StoreHeader() {
@@ -18,17 +19,26 @@ export async function StoreHeader() {
     { href: "/produtos?oferta=1", label: "Ofertas", icon: <TagIcon className="h-5 w-5" />, accent: true },
   ];
 
+  const mobileNav: MobileNavItem[] = [
+    { href: "/produtos?ordem=novidades", label: "Novidades", icon: "novidades" },
+    ...categories.map((c) => ({ href: `/produtos?categoria=${c.slug}`, label: c.name, icon: c.slug })),
+    { href: "/produtos?oferta=1", label: "Ofertas", icon: "ofertas", accent: true },
+  ];
+
   return (
-    <header className="sticky top-0 z-40 bg-amora-800/95 backdrop-blur-md">
-      {/* Faixa principal */}
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:gap-8 md:py-4">
+    <header className="sticky top-0 z-40 border-b border-creme-300/10 bg-amora-800/95 backdrop-blur-md md:border-b-0">
+      {/* Celular: menu + busca | logo | carrinho */}
+      <MobileHeader nav={mobileNav} />
+
+      {/* Desktop: faixa principal */}
+      <div className="mx-auto hidden max-w-6xl items-center gap-8 px-4 py-4 md:flex">
         <Link href="/" className="shrink-0 rounded-lg" aria-label="Amora Fit — início">
           <Logo variant="compact" />
         </Link>
 
-        <SearchBox className="hidden flex-1 md:mx-auto md:block md:max-w-xl" />
+        <SearchBox className="mx-auto max-w-xl flex-1" />
 
-        <nav className="ml-auto flex items-center gap-1 md:ml-0 md:gap-3" aria-label="Conta e carrinho">
+        <nav className="flex items-center gap-3" aria-label="Conta e carrinho">
           <Link
             href="/minha-conta"
             className="grid h-11 w-11 place-items-center rounded-full text-creme-100 transition-colors hover:bg-creme-300/10 hover:text-creme-300"
@@ -41,27 +51,6 @@ export async function StoreHeader() {
           </Link>
           <CartButton />
         </nav>
-      </div>
-
-      {/* Celular: busca + categorias deslizantes */}
-      <div className="border-b border-creme-300/10 md:hidden">
-        <div className="px-4 pb-3">
-          <SearchBox />
-        </div>
-        <ul className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3" aria-label="Categorias">
-          {nav.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`inline-flex h-9 items-center whitespace-nowrap rounded-full border px-4 text-sm transition-colors ${
-                  item.accent ? "border-creme-300/60 text-creme-300" : "border-creme-300/25 text-creme-100 hover:border-creme-300"
-                }`}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
       </div>
 
       {/* Desktop: barra de navegação com ícones */}

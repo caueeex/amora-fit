@@ -11,7 +11,7 @@ import { ProductImage } from "./product-image";
  * Busca com sugestões enquanto digita (sugestões + produtos).
  * Sem JavaScript, continua funcionando como formulário GET para /produtos.
  */
-export function SearchBox({ className = "" }: { className?: string }) {
+export function SearchBox({ className = "", autoFocus = false, onNavigate }: { className?: string; autoFocus?: boolean; onNavigate?: () => void }) {
   const router = useRouter();
   const uid = useId();
   const inputId = `${uid}-busca`;
@@ -72,6 +72,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
 
   function go(href: string) {
     setOpen(false);
+    onNavigate?.();
     input.current?.blur();
     router.push(href);
   }
@@ -105,6 +106,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
         onSubmit={(e) => {
           if (!q) e.preventDefault();
           setOpen(false);
+          if (q) onNavigate?.();
         }}
       >
         <label htmlFor={inputId} className="sr-only">
@@ -114,6 +116,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
           <input
             ref={input}
             id={inputId}
+            autoFocus={autoFocus}
             name="q"
             type="search"
             autoComplete="off"
@@ -194,7 +197,10 @@ export function SearchBox({ className = "" }: { className?: string }) {
                             role="option"
                             aria-selected={active === i}
                             href={s.href}
-                            onClick={() => setOpen(false)}
+                            onClick={() => {
+                              setOpen(false);
+                              onNavigate?.();
+                            }}
                             className={`block px-5 py-2 text-sm text-creme-100 transition-colors hover:bg-creme-300/10 ${active === i ? "bg-creme-300/10" : ""}`}
                           >
                             {before}
@@ -223,7 +229,10 @@ export function SearchBox({ className = "" }: { className?: string }) {
                             role="option"
                             aria-selected={active === i}
                             href={`/produto/${p.slug}`}
-                            onClick={() => setOpen(false)}
+                            onClick={() => {
+                              setOpen(false);
+                              onNavigate?.();
+                            }}
                             className={`flex items-center gap-4 px-5 py-2 transition-colors hover:bg-creme-300/10 ${active === i ? "bg-creme-300/10" : ""}`}
                           >
                             <ProductImage src={p.imageUrl} alt="" sizes="48px" className="h-16 w-12 shrink-0 rounded-lg [&_span]:hidden" />
@@ -250,7 +259,10 @@ export function SearchBox({ className = "" }: { className?: string }) {
             role="option"
             aria-selected={active === searchAllIndex}
             href={`/produtos?q=${encodeURIComponent(q)}`}
-            onClick={() => setOpen(false)}
+            onClick={() => {
+                              setOpen(false);
+                              onNavigate?.();
+                            }}
             className={`flex items-center justify-center gap-2 bg-creme-300 px-5 py-3 text-sm font-semibold text-amora-900 transition-colors hover:bg-creme-200 ${
               active === searchAllIndex ? "bg-creme-200" : ""
             }`}
