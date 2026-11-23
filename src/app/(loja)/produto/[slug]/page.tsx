@@ -7,6 +7,7 @@ import { Section } from "@/components/loja/section";
 import { relatedProducts } from "@/lib/catalog/filters";
 import { getCatalog, getProductBySlug } from "@/lib/catalog/queries";
 import { Gallery } from "./gallery";
+import { ProductColorProvider } from "./product-color";
 import { PurchasePanel } from "./purchase-panel";
 
 export async function generateMetadata({ params }: PageProps<"/produto/[slug]">): Promise<Metadata> {
@@ -53,6 +54,7 @@ async function ProductContent({ params }: { params: PageProps<"/produto/[slug]">
           <span className="text-creme-100/80">{product.name}</span>
         </nav>
 
+        <ProductColorProvider initialColor={product.variants.find((v) => v.available > 0)?.colorName ?? product.colors[0]?.name ?? ""}>
         <div className="grid gap-8 md:grid-cols-2 md:gap-10">
           <Gallery images={product.images} name={product.name} />
 
@@ -76,6 +78,7 @@ async function ProductContent({ params }: { params: PageProps<"/produto/[slug]">
             )}
           </div>
         </div>
+        </ProductColorProvider>
       </div>
 
       {related.length > 0 && (

@@ -2,19 +2,33 @@
 
 import { useState } from "react";
 import { ProductImage } from "@/components/loja/product-image";
+import { foldText } from "@/lib/catalog/filters";
+import { useProductColor } from "./product-color";
 
+/**
+ * Galeria do produto. Ao trocar a cor no painel de compra, mostra a foto daquela cor
+ * (identificada pelo texto alternativo da imagem). Clicar numa miniatura vale até
+ * a próxima troca de cor.
+ */
 export function Gallery({ images, name }: { images: { url: string; alt: string }[]; name: string }) {
-  const [active, setActive] = useState(0);
+  const { color } = useProductColor();
+  const [manual, setManual] = useState<{ index: number; color: string } | null>(null);
+
+  // Prefere "cor <nome>" no texto alternativo (evita confundir a cor "Amora" com o nome do produto).
+  const byPhrase = images.findIndex((img) => color && foldText(img.alt).includes(foldText(`cor ${color}`)));
+  const colorIndex = byPhrase >= 0 ? byPhrase : images.findIndex((img) => color && foldText(img.alt).includes(foldText(color)));
+  const active = manual && manual.color === color ? manual.index : colorIndex >= 0 ? colorIndex : 0;
   const current = images[active];
 
   return (
     <div className="flex flex-col gap-3 md:sticky md:top-40 md:self-start">
       <ProductImage
+        key={current?.url ?? "vazio"}
         src={current?.url}
         alt={current?.alt ?? name}
         sizes="(min-width: 768px) 50vw, 100vw"
         priority
-        className="aspect-[4/5] rounded-[var(--radius-card)] border border-creme-300/10"
+        className="aspect-[4/5] animate-[subir_250ms_var(--ease-suave)] rounded-[var(--radius-card)] border border-creme-300/10"
       />
       {images.length > 1 && (
         <ul className="no-scrollbar flex gap-2 overflow-x-auto" aria-label="Fotos do produto">
@@ -22,7 +36,7 @@ export function Gallery({ images, name }: { images: { url: string; alt: string }
             <li key={img.url}>
               <button
                 type="button"
-                onClick={() => setActive(i)}
+                onClick={() => setManual({ index: i, color })}
                 aria-label={`Ver foto ${i + 1} de ${images.length}`}
                 aria-current={i === active}
                 className={`block overflow-hidden rounded-xl border-2 transition-colors ${

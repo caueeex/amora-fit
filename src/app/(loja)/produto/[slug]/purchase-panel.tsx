@@ -6,11 +6,11 @@ import { Price } from "@/components/loja/price";
 import { Button, buttonClasses } from "@/components/ui/button";
 import type { CatalogProduct } from "@/lib/catalog/types";
 import { useCart } from "@/lib/cart/store";
+import { useProductColor } from "./product-color";
 
 export function PurchasePanel({ product }: { product: CatalogProduct }) {
   const { items, add } = useCart();
-  const firstAvailable = product.variants.find((v) => v.available > 0);
-  const [color, setColor] = useState(firstAvailable?.colorName ?? product.colors[0]?.name ?? "");
+  const { color, setColor } = useProductColor();
   const [size, setSize] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
